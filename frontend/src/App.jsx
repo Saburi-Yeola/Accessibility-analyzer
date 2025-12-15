@@ -1,69 +1,101 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
+
+import Header from "./components/Header";
+import ScanForm from "./components/ScanForm";
+import SummaryCards from "./components/SummaryCards";
+import SeverityChart from "./components/SeverityChart";
+import ResultPieChart from "./components/ResultPieChart";
+import ViolationsTable from "./components/ViolationsTable";
 
 export default function App() {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
+  const [error, setError] = useState(null);
 
-  // this will call backend later
   const handleScan = async () => {
+    if (!url) return;
+
     setLoading(true);
     setResults(null);
+    setError(null);
 
-    // Placeholder until backend is ready
-    setTimeout(() => {
-      setResults({
-        message: "Scan completed successfully (demo placeholder)",
-        urlEntered: url,
+    try {
+      const response = await fetch("http://localhost:5000/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
       });
+
+      if (!response.ok) {
+        throw new Error("Backend scan failed");
+      }
+
+      const data = await response.json();
+
+      setResults({
+        violations: Array.isArray(data.violations) ? data.violations : [],
+        passes: Array.isArray(data.passes) ? data.passes : [],
+        incomplete: Array.isArray(data.incomplete) ? data.incomplete : [],
+      });
+    } catch (err) {
+      console.error(err);
+      setError("Scan failed. Please check the URL or backend.");
+    } finally {
       setLoading(false);
-    }, 1200);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-12 px-4">
-      {/* HEADER */}
-      <h1 className="text-4xl font-bold text-blue-700 mb-6">
-        Accessibility Analyzer
-      </h1>
+    <div className="min-h-screen bg-gray-100 px-6 py-10">
+      <div className="max-w-7xl mx-auto space-y-12">
+        {/* HEADER */}
+        <Header />
 
-      {/* CARD */}
-      <div className="bg-white shadow-lg rounded-xl p-6 w-full max-w-2xl">
-        <label className="block text-gray-700 font-medium mb-2">
-          Enter a website URL:
-        </label>
+        {/* SCAN INPUT CARD */}
+        <section className="bg-white rounded-2xl shadow-soft p-8">
+          <ScanForm
+            url={url}
+            setUrl={setUrl}
+            loading={loading}
+            onScan={handleScan}
+            error={error}
+          />
+        </section>
 
-        <input
-          type="text"
-          placeholder="https://example.com"
-          className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-        />
+        {/* RESULTS */}
+        {results && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+            className="space-y-12"
+          >
+            {/* KPI SUMMARY */}
+            <SummaryCards
+              violations={results.violations.length}
+              passes={results.passes.length}
+              incomplete={results.incomplete.length}
+            />
 
-        <button
-          onClick={handleScan}
-          disabled={loading || !url}
-          className={`w-full mt-4 py-3 rounded-lg text-white font-semibold transition 
-            ${loading || !url ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}
-          `}
-        >
-          {loading ? "Scanning..." : "Run Accessibility Scan"}
-        </button>
+            {/* CHARTS ROW */}
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <SeverityChart violations={results.violations} />
+              <ResultPieChart
+                violations={results.violations.length}
+                passes={results.passes.length}
+                incomplete={results.incomplete.length}
+              />
+            </section>
+
+            {/* DETAILS TABLE */}
+            <section className="bg-white rounded-2xl shadow-soft p-6">
+              <ViolationsTable violations={results.violations} />
+            </section>
+          </motion.div>
+        )}
       </div>
-
-      {/* RESULTS SECTION */}
-      {results && (
-        <div className="bg-white shadow-md rounded-xl p-6 w-full max-w-2xl mt-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-            Scan Results
-          </h2>
-
-          <pre className="bg-gray-200 p-4 rounded-lg text-sm overflow-x-auto">
-            {JSON.stringify(results, null, 2)}
-          </pre>
-        </div>
-      )}
     </div>
   );
 }
