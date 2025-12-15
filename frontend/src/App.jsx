@@ -33,12 +33,19 @@ export default function App() {
       }
 
       const data = await response.json();
-
+      console.log("FULL BACKEND RESPONSE:", data);
+      
       setResults({
-        violations: Array.isArray(data.violations) ? data.violations : [],
-        passes: Array.isArray(data.passes) ? data.passes : [],
-        incomplete: Array.isArray(data.incomplete) ? data.incomplete : [],
-      });
+        violations: Array.isArray(data.data?.violations)
+          ? data.data.violations
+          : [],
+        passes: Array.isArray(data.data?.passes)
+          ? data.data.passes
+          : [],
+        incomplete: Array.isArray(data.data?.incomplete)
+          ? data.data.incomplete
+          : [],
+      });      
     } catch (err) {
       console.error(err);
       setError("Scan failed. Please check the URL or backend.");
