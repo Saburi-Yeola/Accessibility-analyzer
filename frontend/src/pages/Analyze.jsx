@@ -7,7 +7,9 @@ import SummaryCards from "../components/SummaryCards";
 import SeverityChart from "../components/SeverityChart";
 import ResultPieChart from "../components/ResultPieChart";
 import ViolationsTable from "../components/ViolationsTable";
-import { useAuth } from "../context/AuthContext";
+import ExportReportBar from "../components/ExportReportBar";
+import ChartCard from "../components/ChartCard";
+
 
 export default function Analyze() {
 
@@ -86,15 +88,20 @@ export default function Analyze() {
               passes={results.passes.length}
               incomplete={results.incomplete.length}
             />
-
+            {/*EXPORT REPORT BAR */}
+            <ExportReportBar />
             {/* CHARTS */}
             <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+             <ChartCard>
               <SeverityChart violations={results.violations} />
+              </ChartCard> 
+              <ChartCard title="Scan Result Distribution">
               <ResultPieChart
                 violations={results.violations.length}
                 passes={results.passes.length}
                 incomplete={results.incomplete.length}
               />
+              </ChartCard>
             </section>
 
             {/* TABLE */}
