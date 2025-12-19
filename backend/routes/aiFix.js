@@ -1,0 +1,89 @@
+import express from "express";
+
+const router = express.Router();
+
+router.post("/", (req, res) => {
+  const { ruleId, description } = req.body;
+
+  if (!ruleId || !description) {
+    return res.status(400).json({
+      error: "Missing ruleId or description",
+    });
+  }
+
+  let fix = "";
+
+  switch (ruleId) {
+    case "image-alt":
+      fix = `
+Why this is an accessibility issue:
+Images without alt text cannot be read by screen readers.
+
+Suggested fix:
+<img src="logo.png" alt="Descriptive text explaining the image">
+`;
+      break;
+
+    case "color-contrast":
+      fix = `
+Why this is an accessibility issue:
+Low contrast text is difficult to read for users with visual impairments.
+
+Suggested fix:
+Increase contrast between text and background.
+
+Example:
+color: #000000;
+background-color: #FFFFFF;
+`;
+      break;
+
+    case "landmark-one-main":
+      fix = `
+Why this is an accessibility issue:
+Pages should contain exactly one <main> landmark.
+
+Suggested fix:
+<main>
+  <!-- Main page content -->
+</main>
+`;
+      break;
+
+    case "list":
+      fix = `
+Why this is an accessibility issue:
+Lists must use semantic HTML elements.
+
+Suggested fix:
+<ul>
+  <li>Item 1</li>
+  <li>Item 2</li>
+</ul>
+`;
+      break;
+
+    case "region":
+      fix = `
+Why this is an accessibility issue:
+Content should be wrapped in landmark regions.
+
+Suggested fix:
+Use <main>, <nav>, <section>, or <aside>.
+`;
+      break;
+
+    default:
+      fix = `
+Why this is an accessibility issue:
+This issue requires manual accessibility review.
+
+Suggested fix:
+Refer to WCAG 2.1 guidelines for this rule.
+`;
+  }
+
+  return res.json({ fix });
+});
+
+export default router;

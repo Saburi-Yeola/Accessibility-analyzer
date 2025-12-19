@@ -1,30 +1,58 @@
 import { useState } from "react";
 import { Sparkles, Loader2, Copy } from "lucide-react";
 
-export default function FixSuggestionPanel({ violation }) {
+export default function FixSuggestionPanel({ violation, isVisible }) {
   const [loading, setLoading] = useState(false);
   const [fix, setFix] = useState(null);
 
-  const handleGetFix = async () => {
+  if (!isVisible) return null;
+
+  const getMockFix = () => {
+    switch (violation.id) {
+      case "image-alt":
+        return `
+<img src="logo.png" alt="Company logo describing the image" />
+`;
+      case "color-contrast":
+        return `
+/* Increase contrast */
+color: #000000;
+background-color: #FFFFFF;
+`;
+      case "landmark-one-main":
+        return `
+<main>
+  <!-- Main page content -->
+</main>
+`;
+      case "list":
+        return `
+<ul>
+  <li>Item 1</li>
+  <li>Item 2</li>
+</ul>
+`;
+      default:
+        return `
+Refer to WCAG 2.1 guidelines to fix this issue.
+`;
+    }
+  };
+
+  const handleGetFix = () => {
     setLoading(true);
     setFix(null);
 
-    // TEMP mock — backend AI will replace this
     setTimeout(() => {
-      setFix({
-        explanation:
-          "Images without alt text cannot be read by screen readers.",
-        solution:
-          '<img src="logo.png" alt="Company logo describing the image" />',
-      });
+      setFix(getMockFix());
       setLoading(false);
-    }, 1200);
+    }, 1000);
   };
 
   return (
-    <div className="mt-6 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-5">
+    <div className="mt-6 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-6">
       {/* HEADER */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           <h4 className="font-semibold text-gray-800 dark:text-gray-100">
@@ -53,37 +81,44 @@ export default function FixSuggestionPanel({ violation }) {
         </button>
       </div>
 
-      {/* BODY */}
-      {!fix && !loading && (
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Click <strong>Get AI Fix</strong> to receive an AI-generated fix
-          suggestion for this issue.
-        </p>
-      )}
-
+      {/* BEFORE / AFTER */}
       {fix && (
-        <div className="space-y-4">
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            <strong>Why this matters:</strong> {fix.explanation}
-          </p>
+        <>
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* BEFORE */}
+            <div>
+              <p className="text-xs font-semibold mb-2 text-gray-500 uppercase">
+                Before
+              </p>
+              <pre className="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl text-sm overflow-x-auto border border-red-200 dark:border-red-700">
+                {violation.nodes?.[0]?.html || "HTML snippet not available"}
+              </pre>
+            </div>
 
-          <div className="relative">
-            <pre className="bg-gray-200 dark:bg-gray-800 p-3 rounded-lg text-sm overflow-x-auto">
-              {fix.solution}
-            </pre>
+            {/* AFTER */}
+            <div>
+              <p className="text-xs font-semibold mb-2 text-gray-500 uppercase">
+                After (Suggested)
+              </p>
+              <div className="relative">
+                <pre className="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl text-sm overflow-x-auto border border-green-200 dark:border-green-700">
+                  {fix}
+                </pre>
 
-            <button
-              onClick={() => navigator.clipboard.writeText(fix.solution)}
-              className="absolute top-2 right-2 text-gray-600 hover:text-gray-900"
-            >
-              <Copy className="w-4 h-4" />
-            </button>
+                <button
+                  onClick={() => navigator.clipboard.writeText(fix)}
+                  className="absolute top-3 right-3 text-gray-600 hover:text-gray-900 dark:text-gray-400"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
 
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
             ⚠ AI-generated suggestion — review before applying.
           </p>
-        </div>
+        </>
       )}
     </div>
   );
