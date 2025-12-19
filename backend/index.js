@@ -1,6 +1,15 @@
 import express from "express";
 import cors from "cors";
+import dotenv from "dotenv";
+
 import { runAxeScan } from "./runAxe.js";
+import aiFixRoutes from "./routes/aiFix.js";
+
+/**
+ * 🔑 Load environment variables
+ * Explicit path ensures backend/.env is used
+ */
+dotenv.config({ path: "./.env" });
 
 // 1️⃣ FIREBASE ADMIN SETUP
 import admin from "firebase-admin";
@@ -131,6 +140,9 @@ app.post("/scan", async (req, res) => {
     });
   }
 });
+
+// ---------- AI FIX ROUTE ----------
+app.use("/api/ai-fix", aiFixRoutes);
 
 // ---------- SERVER ----------
 app.listen(5000, () => {
