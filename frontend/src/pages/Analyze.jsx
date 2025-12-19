@@ -11,6 +11,7 @@ import ResultPieChart from "../components/ResultPieChart";
 import ViolationsTable from "../components/ViolationsTable";
 import ExportReportBar from "../components/ExportReportBar";
 import ChartCard from "../components/ChartCard"; 
+import VisualInspector from "../components/VisualInspector"; // Import the new component
 
 import { useAuth } from "../context/AuthContext";
 
@@ -37,6 +38,7 @@ export default function Analyze() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
+  const [activeViolation, setActiveViolation] = useState(null); // Track selected violation
 
   // --- EXPORT HANDLERS ---
   const handlePrintPDF = () => window.print();
@@ -71,6 +73,7 @@ export default function Analyze() {
     setLoading(true);
     setError(null);
     setResults(null);
+    setActiveViolation(null); // Reset selection on new scan
 
     try {
       const response = await fetch("http://localhost:5000/scan", {
@@ -82,10 +85,12 @@ export default function Analyze() {
       if (!response.ok) throw new Error("Backend scan failed");
       const data = await response.json();
 
+      // results.data now includes the 'screenshot' and 'rect' coordinates per node
       setResults({
         violations: data.data.violations || [],
         passes: data.data.passes || [],
-        incomplete: data.data.incomplete || []
+        incomplete: data.data.incomplete || [],
+        screenshot: data.data.screenshot || null // Store the screenshot string
       });
 
     } catch (err) {
@@ -98,8 +103,6 @@ export default function Analyze() {
 
   // --- RENDER HELPERS ---
   const score = results ? calculateHealthScore(results.violations, results.passes) : 0;
-  
-  // Ring Math (Fits w-16 container perfectly)
   const radius = 26; 
   const circumference = 2 * Math.PI * radius; 
   const offset = circumference - (score / 100) * circumference;
@@ -134,75 +137,43 @@ export default function Analyze() {
         {results && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-12 print:space-y-8 print:px-8">
             
-            {/* --- UNIFIED STATS GRID (4 Columns) --- */}
+            {/* STATS GRID */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              
-              {/* Card 1: Violations */}
-              <motion.div whileHover={{ y: -4 }} className="h-full">
-                <ChartCard title="Violations" subtitle="Issues to fix">
-                  <div className="flex items-center justify-between mt-4 min-h-[64px]">
-                    {/* Increased Text Size */}
-                    <p className="text-5xl font-bold text-red-600 dark:text-red-400">{results.violations.length}</p>
-                    {/* Increased Icon Size (w-16) */}
-                    <div className="opacity-20"><AlertTriangle className="w-16 h-16" /></div>
+              <ChartCard title="Violations" subtitle="Issues to fix">
+                <div className="flex items-center justify-between mt-4 min-h-[64px]">
+                  <p className="text-5xl font-bold text-red-600 dark:text-red-400">{results.violations.length}</p>
+                  <div className="opacity-20"><AlertTriangle className="w-16 h-16" /></div>
+                </div>
+              </ChartCard>
+
+              <ChartCard title="Passes" subtitle="Successful checks">
+                <div className="flex items-center justify-between mt-4 min-h-[64px]">
+                  <p className="text-5xl font-bold text-green-600 dark:text-green-400">{results.passes.length}</p>
+                  <div className="opacity-20"><CheckCircle className="w-16 h-16" /></div>
+                </div>
+              </ChartCard>
+
+              <ChartCard title="Incomplete" subtitle="Needs review">
+                <div className="flex items-center justify-between mt-4 min-h-[64px]">
+                  <p className="text-5xl font-bold text-yellow-600 dark:text-yellow-400">{results.incomplete.length}</p>
+                  <div className="opacity-20"><HelpCircle className="w-16 h-16" /></div>
+                </div>
+              </ChartCard>
+
+              <ChartCard title="Health Score" subtitle="Weighted rating">
+                <div className="flex items-center justify-between mt-4 min-h-[64px]">
+                  <div>
+                    <p className={`text-5xl font-bold ${scoreColor}`}>{score}</p>
+                    <p className="text-xs text-gray-400 uppercase font-bold mt-1">/ 100</p>
                   </div>
-                </ChartCard>
-              </motion.div>
-
-              {/* Card 2: Passes */}
-              <motion.div whileHover={{ y: -4 }} className="h-full">
-                <ChartCard title="Passes" subtitle="Successful checks">
-                  <div className="flex items-center justify-between mt-4 min-h-[64px]">
-                    <p className="text-5xl font-bold text-green-600 dark:text-green-400">{results.passes.length}</p>
-                    <div className="opacity-20"><CheckCircle className="w-16 h-16" /></div>
+                  <div className="relative w-16 h-16 flex items-center justify-center">
+                    <svg className="transform -rotate-90 w-16 h-16">
+                      <circle cx="32" cy="32" r={radius} stroke="currentColor" strokeWidth="6" fill="transparent" className="text-gray-100 dark:text-gray-800" />
+                      <circle cx="32" cy="32" r={radius} stroke="currentColor" strokeWidth="6" fill="transparent" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className={`${scoreColor} transition-all duration-1000 ease-out`} />
+                    </svg>
                   </div>
-                </ChartCard>
-              </motion.div>
-
-              {/* Card 3: Incomplete */}
-              <motion.div whileHover={{ y: -4 }} className="h-full">
-                <ChartCard title="Incomplete" subtitle="Needs review">
-                  <div className="flex items-center justify-between mt-4 min-h-[64px]">
-                    <p className="text-5xl font-bold text-yellow-600 dark:text-yellow-400">{results.incomplete.length}</p>
-                    <div className="opacity-20"><HelpCircle className="w-16 h-16" /></div>
-                  </div>
-                </ChartCard>
-              </motion.div>
-
-              {/* Card 4: Health Score (Balanced) */}
-              <motion.div whileHover={{ y: -4 }} className="h-full">
-                <ChartCard title="Health Score" subtitle="Weighted rating">
-                  <div className="flex items-center justify-between mt-4 min-h-[64px]">
-                    
-                    {/* Value (Matches other cards' text size) */}
-                    <div>
-                      <p className={`text-5xl font-bold ${scoreColor}`}>{score}</p>
-                      <p className="text-xs text-gray-400 uppercase font-bold mt-1">/ 100</p>
-                    </div>
-
-                    {/* Ring Visual (Matches other cards' icon size: w-16) */}
-                    <div className="relative w-16 h-16 flex items-center justify-center">
-                      <svg className="transform -rotate-90 w-16 h-16">
-                        <circle 
-                          cx="32" cy="32" r={radius} 
-                          stroke="currentColor" strokeWidth="6" fill="transparent" 
-                          className="text-gray-100 dark:text-gray-800" 
-                        />
-                        <circle 
-                          cx="32" cy="32" r={radius} 
-                          stroke="currentColor" strokeWidth="6" fill="transparent" 
-                          strokeDasharray={circumference} 
-                          strokeDashoffset={offset} 
-                          strokeLinecap="round"
-                          className={`${scoreColor} transition-all duration-1000 ease-out`} 
-                        />
-                      </svg>
-                    </div>
-
-                  </div>
-                </ChartCard>
-              </motion.div>
-
+                </div>
+              </ChartCard>
             </div>
 
             {/* EXPORT BAR */}
@@ -210,26 +181,50 @@ export default function Analyze() {
               <ExportReportBar onPdf={handlePrintPDF} onJson={handleDownloadJSON} onCsv={handleDownloadCSV} />
             </div>
 
+            {/* --- NEW: INTERACTIVE INSPECTOR SECTION --- */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-10">
+              {/* LEFT COLUMN: Detailed Log */}
+              <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-soft p-6 h-[800px] overflow-y-auto custom-scrollbar border dark:border-gray-800">
+                <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-white border-b pb-2">
+                  Detailed Violations Log
+                </h3>
+                {/* Updated ViolationsTable to handle row clicks */}
+                <ViolationsTable 
+                  violations={results.violations} 
+                  onRowClick={(v) => setActiveViolation(v)}
+                  activeId={activeViolation?.id}
+                />
+              </section>
+
+              {/* RIGHT COLUMN: Visual Inspector Preview */}
+              <section className="sticky top-24 h-fit">
+                <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-white">
+                  Visual Inspector Preview
+                </h3>
+                <VisualInspector 
+                  screenshot={results.screenshot} 
+                  activeViolation={activeViolation} 
+                />
+                {!activeViolation && (
+                  <div className="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-sm italic text-center border border-blue-100 dark:border-blue-800">
+                    Click on a violation from the log to highlight it on the page preview.
+                  </div>
+                )}
+              </section>
+            </div>
+
             {/* CHARTS */}
-            <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 print:break-inside-avoid">
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 print:break-inside-avoid pt-12">
               <ChartCard title="Violations Severity">
-                 <div style={{ width: "100%", height: 300 }}>
-                  <SeverityChart violations={results.violations} />
-                 </div>
+                  <div style={{ width: "100%", height: 300 }}>
+                    <SeverityChart violations={results.violations} />
+                  </div>
               </ChartCard>
               <ChartCard title="Result Distribution">
-                 <div style={{ width: "100%", height: 300 }}>
-                  <ResultPieChart violations={results.violations.length} passes={results.passes.length} incomplete={results.incomplete.length} />
-                 </div>
+                  <div style={{ width: "100%", height: 300 }}>
+                    <ResultPieChart violations={results.violations.length} passes={results.passes.length} incomplete={results.incomplete.length} />
+                  </div>
               </ChartCard>
-            </section>
-
-            {/* TABLE */}
-            <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-soft p-6 print:shadow-none print:border print:p-0">
-              <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-white print:text-black border-b pb-2 px-2">
-                Detailed Violations Log
-              </h3>
-              <ViolationsTable violations={results.violations} />
             </section>
 
             {/* FOOTER */}
