@@ -1,4 +1,4 @@
-accessibility-analyzer/.gitignore
+
 # --- Dependencies (Ignores them everywhere) ---
 node_modules/
 
