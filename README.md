@@ -27,11 +27,11 @@ Get a bird's-eye view of your website's accessibility health. We calculate a cus
 
 <img src="./Screenshots/analysis-grid.png" alt="Analysis Grid" />
 
-### 2. Detailed Violations & AI Fixes
+### 2. Detailed Violations , AI Fixes & Visual Inspector Preview
 
 Dive deep into every issue. Our tool pinpoints the exact HTML element causing the problem and suggests code fixes.
 
-<img src="./Screenshots/violations-table.png" alt="Violations and Fixes" />
+<img src="./Screenshots/violations-table-vi-preview.png" alt="Violations and Fixes" />
 
 ### 3. Smart Scan History
 
@@ -118,6 +118,7 @@ If you'd like to improve the scoring algorithm or add new export formats, feel f
 <p align="center">
 Made with ❤️ and ☕ by Developers, for Developers.
 </p>
+
 
 
 
