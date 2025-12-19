@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 import FixSuggestionPanel from "./FixSuggestionPanel";
 
@@ -32,9 +32,18 @@ export default function ViolationsTable({ violations }) {
 
         {/* BODY */}
         <tbody>
-          {violations.map((v, index) => {
-            const rowId = v.id || index;
-            const isExpanded = expandedId === rowId;
+          {violations.map((v, index) => (
+            /* ✅ FIX: Used <Fragment> with a key instead of <>. 
+               The 'key' must always be on the outermost element returned by map().
+            */
+            <Fragment key={v.id || index}>
+              <tr
+                className="border-t odd:bg-white even:bg-gray-50 dark:odd:bg-gray-900 dark:even:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700 transition"
+              >
+                {/* RULE */}
+                <td className="p-4 font-medium text-gray-800 dark:text-gray-100">
+                  {v.id}
+                </td>
 
             return (
               <tr key={rowId} className="border-t">
@@ -90,15 +99,13 @@ export default function ViolationsTable({ violations }) {
                     </div>
                   )}
 
-                  {/* FIX PANEL (ALWAYS MOUNTED) */}
-                  <FixSuggestionPanel
-                    violation={v}
-                    isVisible={isExpanded}
-                  />
-                </td>
-              </tr>
-            );
-          })}
+                    {/* AI FIX PANEL (UI ONLY) */}
+                    <FixSuggestionPanel violation={v} />
+                  </td>
+                </tr>
+              )}
+            </Fragment>
+          ))}
         </tbody>
       </table>
     </div>
