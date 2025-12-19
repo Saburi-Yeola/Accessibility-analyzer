@@ -19,12 +19,6 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const serviceAccount = require("./serviceAccountKey.json"); 
 
-// 🕵️‍♂️ SPY LOGS: Confirm the key is loaded correctly
-console.log("-----------------------------------------");
-console.log("🔑 LOADED KEY FOR PROJECT:", serviceAccount.project_id);
-console.log("📧 SERVICE EMAIL:", serviceAccount.client_email);
-console.log("-----------------------------------------");
-
 // Initialize Firebase (Only once)
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -34,8 +28,7 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-// 🚨 CRITICAL FIX: Connect to your specific named database
-// Since you created "accessibility-db" in the Google Cloud Console:
+// 🚨 CRITICAL: Connect to your specific named database
 db.settings({ databaseId: "accessibility-db" }); 
 
 const app = express();
@@ -94,6 +87,7 @@ app.post("/scan", async (req, res) => {
     const summary = buildSummary(results);
 
     // 2️⃣ SAVE TO FIRESTORE (Backend Logic)
+    // Only save if a User ID is present.
     if (userId) {
       console.log(`📝 Saving scan for user: ${userEmail}`);
       
@@ -122,7 +116,8 @@ app.post("/scan", async (req, res) => {
         console.error("❌ Database Save Failed:", dbErr.message);
       }
     } else {
-      console.log("⚠️ No User ID provided. Skipping DB save.");
+      // 🟢 DEMO MODE: Logic hits here when userId is null
+      console.log("⚠️ No User ID provided (Demo Mode). Skipping DB save.");
     }
 
     // Return results to frontend regardless of DB save status
