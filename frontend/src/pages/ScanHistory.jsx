@@ -257,28 +257,33 @@ export default function ScanHistory() {
           </div>
         ) : (
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-soft overflow-hidden border border-gray-100 dark:border-gray-800">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-                <tr>
-                  <th className="p-4 text-xs font-bold text-gray-500 uppercase">Website</th>
-                  <th className="p-4 text-xs font-bold text-gray-500 uppercase">Date</th>
-                  <th className="p-4 text-xs font-bold text-gray-500 uppercase">Violations</th>
-                  <th className="p-4 text-right text-xs font-bold text-gray-500 uppercase">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {scans.map((scan) => (
-                  <tr key={scan.id} className="hover:bg-blue-50/50 dark:hover:bg-gray-800/50 transition">
-                    <td className="p-4 font-medium text-blue-600 truncate max-w-xs">{scan.url}</td>
-                    <td className="p-4 text-gray-600 text-sm">{scan.formattedDate}</td>
-                    <td className="p-4 font-mono font-bold text-gray-700">{scan.summary?.totalViolations || 0}</td>
-                    <td className="p-4 text-right">
-                      <button onClick={() => setSelectedScan(scan)} className="text-blue-600 hover:underline text-sm font-medium">View Report</button>
-                    </td>
+            
+            {/* ✅ ADDED WRAPPER FOR HORIZONTAL SCROLLING */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+                  <tr>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Website</th>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Date</th>
+                    <th className="p-4 text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Violations</th>
+                    <th className="p-4 text-right text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {scans.map((scan) => (
+                    <tr key={scan.id} className="hover:bg-blue-50/50 dark:hover:bg-gray-800/50 transition">
+                      <td className="p-4 font-medium text-blue-600 truncate max-w-xs">{scan.url}</td>
+                      <td className="p-4 text-gray-600 text-sm whitespace-nowrap">{scan.formattedDate}</td>
+                      <td className="p-4 font-mono font-bold text-gray-700">{scan.summary?.totalViolations || 0}</td>
+                      <td className="p-4 text-right">
+                        <button onClick={() => setSelectedScan(scan)} className="text-blue-600 hover:underline text-sm font-medium whitespace-nowrap">View Report</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
           </div>
         )}
 
