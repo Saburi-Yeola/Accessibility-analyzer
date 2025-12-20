@@ -15,7 +15,25 @@ import admin from "firebase-admin";
 import { createRequire } from "module"; 
 
 const require = createRequire(import.meta.url);
-const serviceAccount = require("./serviceAccountKey.json"); 
+
+// --- 🔒 ROBUST SECRET LOADING (Local vs Render) ---
+let serviceAccount;
+
+try {
+  // A. Try loading from Render's automatic secret path (Production)
+  serviceAccount = require("/etc/secrets/serviceAccountKey.json");
+  console.log("🔑 Loaded Service Account from /etc/secrets/");
+} catch (error) {
+  // B. If that fails, load from local folder (Development)
+  try {
+    serviceAccount = require("./serviceAccountKey.json");
+    console.log("🔑 Loaded Service Account from local folder");
+  } catch (localError) {
+    console.error("❌ CRITICAL ERROR: Could not find serviceAccountKey.json in /etc/secrets/ OR ./");
+    console.error("   -> Did you add the Secret File in Render Dashboard?");
+    process.exit(1); // Stop the server if we can't authenticate
+  }
+}
 
 // Initialize Firebase (Only once)
 if (!admin.apps.length) {
@@ -92,11 +110,13 @@ app.post("/scan", async (req, res) => {
       try {
         const timestamp = admin.firestore.FieldValue.serverTimestamp();
 
+        // A. Update User Document
         await db.collection("users").doc(userId).set({
           email: userEmail,
           lastScanAt: timestamp
         }, { merge: true });
 
+        // B. Add New Scan Document
         await db.collection("users").doc(userId).collection("scans").add({
           url: url,
           summary: {
@@ -104,7 +124,6 @@ app.post("/scan", async (req, res) => {
             passes: results.passes ? results.passes.length : 0,
             incomplete: results.incomplete ? results.incomplete.length : 0
           },
-          // We don't save the screenshot to Firestore yet to avoid storage costs
           createdAt: timestamp
         });
 
@@ -133,8 +152,11 @@ app.post("/scan", async (req, res) => {
   }
 });
 
+// ---------- AI FIX ROUTE ----------
 app.use("/api/ai-fix", aiFixRoutes);
 
-app.listen(5000, () => {
-  console.log("🚀 Server started on http://localhost:5000");
+// Use the PORT environment variable if available (Render sets this automatically)
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server started on port ${PORT}`);
 });
