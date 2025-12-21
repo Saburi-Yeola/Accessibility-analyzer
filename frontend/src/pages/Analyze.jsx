@@ -69,7 +69,7 @@ export default function Analyze() {
   if (!user) return <div className="min-h-screen flex items-center justify-center dark:bg-gray-950 dark:text-white">Please log in.</div>;
 
   const handleScan = async () => {
-    if (!url) return;
+    if (!url || loading) return; // Prevent double submit
     setLoading(true);
     setError(null);
     setResults(null);
@@ -100,6 +100,13 @@ export default function Analyze() {
     }
   };
 
+  // ✅ ADDED: Handler for Enter key
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleScan();
+    }
+  };
+
   const score = results ? calculateHealthScore(results.violations, results.passes) : 0;
   const radius = 26; 
   const circumference = 2 * Math.PI * radius; 
@@ -109,24 +116,15 @@ export default function Analyze() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 px-6 py-10 pt-24 print:bg-white print:p-0 print:pt-0">
       
-      {/* PRINT MEDIA QUERIES
-          1. Removes browser artifacts like "History" and "frontend".
-          2. Ensures exact visual rendering of screenshots and highlights.
-      */}
+      {/* PRINT MEDIA QUERIES */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page { margin: 1cm; }
           body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           .no-print { display: none !important; }
-          
-          /* Hide non-report UI */
           header, nav, .history-container, .user-nav, [data-testid="header"] { display: none !important; }
-
-          /* Layout management for PDF */
           .print-stack { display: block !important; width: 100% !important; margin-bottom: 2rem !important; }
           .print-break-page { break-before: page !important; }
-          
-          /* Force Inspector to fill width in report */
           .inspector-report-view { height: auto !important; max-height: none !important; overflow: visible !important; width: 100% !important; }
         }
       `}} />
@@ -149,7 +147,11 @@ export default function Analyze() {
           </div>
         </div>
 
-        <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-soft p-8 print:hidden no-print border dark:border-gray-800">
+        {/* ✅ ADDED: Keyboard listener wrapper */}
+        <section 
+          onKeyDown={handleKeyDown} 
+          className="bg-white dark:bg-gray-900 rounded-2xl shadow-soft p-8 print:hidden no-print border dark:border-gray-800"
+        >
           <ScanForm url={url} setUrl={setUrl} loading={loading} onScan={handleScan} error={error} />
         </section>
 
