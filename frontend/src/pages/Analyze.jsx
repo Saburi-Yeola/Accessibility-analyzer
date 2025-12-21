@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Globe, AlertTriangle, CheckCircle, HelpCircle 
+  Globe, AlertTriangle, CheckCircle, HelpCircle, Info 
 } from "lucide-react";
 
 import Header from "../components/Header";
@@ -100,7 +100,7 @@ export default function Analyze() {
     }
   };
 
-  // ✅ ADDED: Handler for Enter key
+  // ✅ Handler for Enter key
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       handleScan();
@@ -147,7 +147,21 @@ export default function Analyze() {
           </div>
         </div>
 
-        {/* ✅ ADDED: Keyboard listener wrapper */}
+        {/* ✅ NEW: INFO NOTICE (Single Page Scope) */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-start gap-3 print:hidden animate-in fade-in slide-in-from-top-2">
+            <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div>
+               <p className="text-sm text-blue-900 dark:text-blue-200 font-semibold">
+                 Single-Page Analysis Mode
+               </p>
+               <p className="text-sm text-blue-700 dark:text-blue-300 mt-1 leading-relaxed">
+                 Currently, the scanner analyzes the specific URL provided (e.g., Homepage). 
+                 <span className="opacity-75"> Full-site crawling and internal page navigation are planned for Future Scope (v2.0).</span>
+               </p>
+            </div>
+        </div>
+
+        {/* Keyboard listener wrapper */}
         <section 
           onKeyDown={handleKeyDown} 
           className="bg-white dark:bg-gray-900 rounded-2xl shadow-soft p-8 print:hidden no-print border dark:border-gray-800"
