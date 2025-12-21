@@ -1,3 +1,4 @@
+```markdown
 # ♿ Accessibility Analyzer
 
 > **Make the web inclusive for everyone.**
@@ -51,6 +52,17 @@ New users can run a **One-Time Free Scan** without creating an account. We use l
 
 ---
 
+## 🔮 Future Scope (Roadmap)
+
+We are constantly working to improve Accessibility Analyzer. Planned features for v2.0 include:
+
+* **🕸️ Deep Crawling:** A web spider to scan an entire domain (internal pages) instead of just a single URL.
+* **🔐 Authenticated Scans:** Ability to scan pages behind login screens.
+* **📅 Scheduled Audits:** Set up automated weekly scans to track compliance over time.
+* **🧩 CI/CD Integration:** A GitHub Action to block deploys if accessibility score drops below a threshold.
+
+---
+
 ## 🛠️ Tech Stack
 
 * **Frontend:** React (Vite), Tailwind CSS, Framer Motion (Animations), Recharts (Data Viz).
@@ -74,13 +86,13 @@ This project uses a split structure: `frontend` and `backend`.
 
 1. **Clone the repo**
 ```bash
-git clone https://github.com/karina-purswani/accessibility-analyzer.git
+git clone [https://github.com/karina-purswani/accessibility-analyzer.git](https://github.com/karina-purswani/accessibility-analyzer.git)
 cd accessibility-analyzer
 
 ```
 
-
 2. **Setup Backend**
+
 ```bash
 cd backend
 npm install
@@ -90,8 +102,8 @@ npm run dev
 
 ```
 
-
 3. **Setup Frontend** (Open a new terminal)
+
 ```bash
 cd frontend
 npm install
@@ -99,8 +111,6 @@ npm install
 npm run dev
 
 ```
-
-
 
 ---
 
@@ -119,8 +129,6 @@ If you'd like to improve the scoring algorithm or add new export formats, feel f
 Made with ❤️ and ☕ by Developers, for Developers.
 </p>
 
+```
 
-
-
-
-
+```
