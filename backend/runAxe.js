@@ -21,7 +21,7 @@ async function getBrowser() {
       "--disable-accelerated-2d-canvas",
       "--disable-gpu",
       "--single-process",
-      "--no-zygote", // Saves memory
+      "--no-zygote", 
     ],
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
     timeout: 60000 
@@ -40,29 +40,29 @@ export async function runAxeScan(url) {
     // 2. Open a new TAB only (Fast)
     page = await browser.newPage();
     
-    // Set viewport
+    // Set viewport to standard desktop size
     await page.setViewport({ width: 1280, height: 800 });
 
-    // 🚀 OPTIMIZATION: Block Heavy Assets
-    await page.setRequestInterception(true);
-    page.on("request", (req) => {
-      const resourceType = req.resourceType();
-      const blockList = ["image", "media", "font", "texttrack", "object", "beacon", "csp_report", "imageset"];
-      if (blockList.includes(resourceType)) req.abort();
-      else req.continue();
-    });
+    // ❌ REMOVED: Asset Blocking Logic 
+    // We are now loading ALL fonts, images, and media for maximum accuracy.
 
     // 3. Navigate
+    // We use 'domcontentloaded' to keep it snappy, but since assets are allowed, 
+    // the visual rendering will be correct.
     await page.goto(url, { 
-      waitUntil: "domcontentloaded", // Fastest safe setting
+      waitUntil: "domcontentloaded", 
       timeout: 45000 
     });
 
-    // 4. Capture Screenshot (Low quality JPEG for speed)
+    // Optional: Wait a tiny bit extra for fonts/images to render (1s)
+    // This helps contrast checks be more accurate without waiting forever.
+    await new Promise(r => setTimeout(r, 1000));
+
+    // 4. Capture Screenshot (Standard quality for better visuals)
     const screenshot = await page.screenshot({ 
       encoding: "base64", 
       type: "jpeg",
-      quality: 40, 
+      quality: 60, // Slightly higher quality for better visibility
       fullPage: false 
     });
 
@@ -104,7 +104,7 @@ export async function runAxeScan(url) {
   } catch (error) {
     console.error("❌ Axe Scan Error:", error.message);
     
-    // Close the browser if it crashed completely so it restarts next time
+    // Reset browser if it crashed
     if (sharedBrowser && !sharedBrowser.isConnected()) {
       sharedBrowser = null;
     }
@@ -115,7 +115,7 @@ export async function runAxeScan(url) {
     throw error;
 
   } finally {
-    // ⚠️ CRITICAL: Close the TAB, but keep the BROWSER open!
+    // ⚠️ CRITICAL: Close the TAB to free memory
     if (page) {
       await page.close();
     }
