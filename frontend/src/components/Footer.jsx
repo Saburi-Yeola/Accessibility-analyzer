@@ -30,7 +30,7 @@ export default function Footer() {
             </li>
             <li>
               <a 
-                href="https://github.com/karina-purswani" 
+                href="https://github.com/karina-purswani/accessibility-analyzer" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 hover:text-white transition-colors"
