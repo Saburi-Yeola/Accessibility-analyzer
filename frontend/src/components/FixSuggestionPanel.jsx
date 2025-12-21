@@ -4,49 +4,42 @@ import { Sparkles, Loader2, Copy } from "lucide-react";
 export default function FixSuggestionPanel({ violation, isVisible }) {
   const [loading, setLoading] = useState(false);
   const [fix, setFix] = useState(null);
+  const [error, setError] = useState(null);
 
   if (!isVisible) return null;
 
-  const getMockFix = () => {
-    switch (violation.id) {
-      case "image-alt":
-        return `
-<img src="logo.png" alt="Company logo describing the image" />
-`;
-      case "color-contrast":
-        return `
-/* Increase contrast */
-color: #000000;
-background-color: #FFFFFF;
-`;
-      case "landmark-one-main":
-        return `
-<main>
-  <!-- Main page content -->
-</main>
-`;
-      case "list":
-        return `
-<ul>
-  <li>Item 1</li>
-  <li>Item 2</li>
-</ul>
-`;
-      default:
-        return `
-Refer to WCAG 2.1 guidelines to fix this issue.
-`;
-    }
-  };
-
-  const handleGetFix = () => {
+  const handleGetFix = async () => {
     setLoading(true);
     setFix(null);
+    setError(null);
 
-    setTimeout(() => {
-      setFix(getMockFix());
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/ai-fix`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ruleId: violation.id,
+            description: violation.description,
+            html: violation.nodes?.[0]?.html || "",
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate fix");
+      }
+
+      setFix(data.fix);
+    } catch (err) {
+      console.error("AI Fix Error:", err);
+      setError("Unable to generate fix at the moment.");
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -81,17 +74,30 @@ Refer to WCAG 2.1 guidelines to fix this issue.
         </button>
       </div>
 
-      {/* BEFORE / AFTER */}
+      {/* EMPTY STATE */}
+      {!fix && !loading && !error && (
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Click <strong>Get AI Fix</strong> to see a suggested accessibility
+          improvement for this issue.
+        </p>
+      )}
+
+      {/* ERROR */}
+      {error && (
+        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+      )}
+
+      {/* BEFORE vs AFTER */}
       {fix && (
         <>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-6 mt-5">
             {/* BEFORE */}
             <div>
               <p className="text-xs font-semibold mb-2 text-gray-500 uppercase">
                 Before
               </p>
               <pre className="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl text-sm overflow-x-auto border border-red-200 dark:border-red-700">
-                {violation.nodes?.[0]?.html || "HTML snippet not available"}
+                {violation.nodes?.[0]?.html || "N/A"}
               </pre>
             </div>
 
@@ -108,6 +114,7 @@ Refer to WCAG 2.1 guidelines to fix this issue.
                 <button
                   onClick={() => navigator.clipboard.writeText(fix)}
                   className="absolute top-3 right-3 text-gray-600 hover:text-gray-900 dark:text-gray-400"
+                  title="Copy suggested fix"
                 >
                   <Copy className="w-4 h-4" />
                 </button>
@@ -115,8 +122,8 @@ Refer to WCAG 2.1 guidelines to fix this issue.
             </div>
           </div>
 
-          <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-            ⚠ AI-generated suggestion — review before applying.
+          <p className="mt-4 text-xs text-gray-500 dark:text-gray-400 italic">
+            ⚠ Suggested fix is AI-generated — please review before applying.
           </p>
         </>
       )}

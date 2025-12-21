@@ -1,7 +1,32 @@
 import express from "express";
 import cors from "cors";
+import dotenv from "dotenv";
+import admin from "firebase-admin";
+import { createRequire } from "module"; 
+
 import { runAxeScan } from "./runAxe.js";
 import aiFixRoutes from "./routes/aiFix.js";
+
+/**
+ * 🔑 Load environment variables
+ */
+dotenv.config({ path: "./.env" });
+
+// 1️⃣ FIREBASE ADMIN SETUP
+const require = createRequire(import.meta.url);
+const serviceAccount = require("./serviceAccountKey.json"); 
+
+// Initialize Firebase (Only once)
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+}
+
+const db = admin.firestore();
+
+// 🚨 CRITICAL: Connect to your specific named database
+db.settings({ databaseId: "accessibility-db" }); 
 
 const app = express();
 const PORT = 5000;
@@ -17,7 +42,7 @@ function isValidUrl(url) {
       parsedUrl.protocol === "http:" ||
       parsedUrl.protocol === "https:"
     );
-  } catch {
+  } catch (err) {
     return false;
   }
 }
@@ -57,13 +82,10 @@ app.get("/", (req, res) => {
 
 // ---------- SCAN ROUTE ----------
 app.post("/scan", async (req, res) => {
-  const { url } = req.body;
+  const { url, userId, userEmail } = req.body;
 
   if (!url) {
-    return res.status(400).json({
-      success: false,
-      error: "URL is required",
-    });
+    return res.status(400).json({ success: false, error: "URL is required" });
   }
 
   if (!isValidUrl(url)) {
@@ -73,19 +95,51 @@ app.post("/scan", async (req, res) => {
     });
   }
 
-  console.log("Scanning URL:", url);
+  console.log(`🔍 Scanning URL: ${url}`);
 
   try {
+    // results now contains { ...axeResults, screenshot: "data:..." }
     const results = await runAxeScan(url);
     const summary = buildSummary(results);
+
+    // 2️⃣ SAVE TO FIRESTORE (Backend Logic)
+    if (userId) {
+      console.log(`📝 Saving scan for user: ${userEmail}`);
+      
+      try {
+        const timestamp = admin.firestore.FieldValue.serverTimestamp();
+
+        await db.collection("users").doc(userId).set({
+          email: userEmail,
+          lastScanAt: timestamp
+        }, { merge: true });
+
+        await db.collection("users").doc(userId).collection("scans").add({
+          url: url,
+          summary: {
+            ...summary,
+            passes: results.passes ? results.passes.length : 0,
+            incomplete: results.incomplete ? results.incomplete.length : 0
+          },
+          createdAt: timestamp
+        });
+
+        console.log(`✅ Scan saved to Firestore!`);
+      } catch (dbErr) {
+        console.error("❌ Database Save Failed:", dbErr.message);
+      }
+    } else {
+      console.log("⚠️ No User ID provided (Demo Mode). Skipping DB save.");
+    }
 
     return res.json({
       success: true,
       summary,
       data: results,
     });
+
   } catch (err) {
-    console.error("Scan error:", err);
+    console.error("❌ Scan Error:", err);
     return res.status(500).json({
       success: false,
       error: err.message || "Accessibility scan failed",
@@ -98,5 +152,5 @@ app.use("/api/ai-fix", aiFixRoutes);
 
 // ---------- SERVER ----------
 app.listen(PORT, () => {
-  console.log(`Server started on http://localhost:${PORT}`);
+  console.log(`🚀 Server started on http://localhost:${PORT}`);
 });

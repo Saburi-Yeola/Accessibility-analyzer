@@ -3,7 +3,8 @@ import express from "express";
 const router = express.Router();
 
 router.post("/", (req, res) => {
-  const { ruleId, description } = req.body;
+  // Merged: Extraction of ruleId, description, and html for full context
+  const { ruleId, description, html } = req.body;
 
   if (!ruleId || !description) {
     return res.status(400).json({
@@ -41,12 +42,21 @@ background-color: #FFFFFF;
     case "landmark-one-main":
       fix = `
 Why this is an accessibility issue:
-Pages should contain exactly one <main> landmark.
+Pages should contain exactly one <main> landmark for screen readers.
 
 Suggested fix:
 <main>
-  <!-- Main page content -->
-</main>
+  </main>
+`;
+      break;
+
+    case "region":
+      fix = `
+Why this is an accessibility issue:
+Content should be contained within landmark regions.
+
+Suggested fix:
+Wrap content inside semantic landmarks like <main>, <nav>, or <section>.
 `;
       break;
 
@@ -63,23 +73,34 @@ Suggested fix:
 `;
       break;
 
-    case "region":
+    case "scrollable-region-focusable":
       fix = `
 Why this is an accessibility issue:
-Content should be wrapped in landmark regions.
+Scrollable regions must be focusable for keyboard users.
 
 Suggested fix:
-Use <main>, <nav>, <section>, or <aside>.
+<div tabindex="0" style="overflow-y: auto;">
+  </div>
+`;
+      break;
+
+    case "aria-roles":
+      fix = `
+Why this is an accessibility issue:
+ARIA roles must match the element's purpose.
+
+Suggested fix:
+Use native HTML elements whenever possible instead of ARIA roles.
 `;
       break;
 
     default:
       fix = `
 Why this is an accessibility issue:
-This issue requires manual accessibility review.
+This rule requires manual review and context-specific changes.
 
 Suggested fix:
-Refer to WCAG 2.1 guidelines for this rule.
+Refer to WCAG 2.1 guidelines and Axe documentation for this rule.
 `;
   }
 
