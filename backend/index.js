@@ -14,7 +14,25 @@ dotenv.config({ path: "./.env" });
 
 // 1️⃣ FIREBASE ADMIN SETUP
 const require = createRequire(import.meta.url);
-const serviceAccount = require("./serviceAccountKey.json"); 
+
+// --- 🔒 ROBUST SECRET LOADING (Local vs Render) ---
+let serviceAccount;
+
+try {
+  // A. Try loading from Render's automatic secret path (Production)
+  serviceAccount = require("/etc/secrets/serviceAccountKey.json");
+  console.log("🔑 Loaded Service Account from /etc/secrets/");
+} catch (error) {
+  // B. If that fails, load from local folder (Development)
+  try {
+    serviceAccount = require("./serviceAccountKey.json");
+    console.log("🔑 Loaded Service Account from local folder");
+  } catch (localError) {
+    console.error("❌ CRITICAL ERROR: Could not find serviceAccountKey.json in /etc/secrets/ OR ./");
+    console.error("   -> Did you add the Secret File in Render Dashboard?");
+    process.exit(1); 
+  }
+}
 
 // Initialize Firebase (Only once)
 if (!admin.apps.length) {
@@ -29,7 +47,6 @@ const db = admin.firestore();
 db.settings({ databaseId: "accessibility-db" }); 
 
 const app = express();
-const PORT = 5000;
 
 app.use(cors());
 app.use(express.json());
@@ -109,11 +126,13 @@ app.post("/scan", async (req, res) => {
       try {
         const timestamp = admin.firestore.FieldValue.serverTimestamp();
 
+        // A. Update User Document
         await db.collection("users").doc(userId).set({
           email: userEmail,
           lastScanAt: timestamp
         }, { merge: true });
 
+        // B. Add New Scan Document
         await db.collection("users").doc(userId).collection("scans").add({
           url: url,
           summary: {
@@ -151,6 +170,8 @@ app.post("/scan", async (req, res) => {
 app.use("/api/ai-fix", aiFixRoutes);
 
 // ---------- SERVER ----------
+// Use the PORT environment variable if available (Render sets this automatically)
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server started on http://localhost:${PORT}`);
+  console.log(`🚀 Server started on port ${PORT}`);
 });

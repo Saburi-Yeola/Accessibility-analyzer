@@ -1,37 +1,83 @@
 import puppeteer from "puppeteer";
 import axeCore from "axe-core";
 
+// 🚀 GLOBAL VARIABLE: Keep the browser alive!
+let sharedBrowser = null;
+
+async function getBrowser() {
+  // If browser exists and is connected, reuse it!
+  if (sharedBrowser && sharedBrowser.isConnected()) {
+    return sharedBrowser;
+  }
+
+  // Otherwise, launch a new one (Only happens once on server start)
+  console.log("🔥 Launching new 'Hot' Browser instance...");
+  sharedBrowser = await puppeteer.launch({
+    headless: "new",
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage", // Critical for memory
+      "--disable-accelerated-2d-canvas",
+      "--disable-gpu",
+      "--single-process",
+      "--no-zygote", 
+    ],
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
+    timeout: 60000 
+  });
+
+  return sharedBrowser;
+}
+
 export async function runAxeScan(url) {
-  let browser;
+  let page;
 
   try {
-    browser = await puppeteer.launch({
-      headless: "new", // Updated for modern Puppeteer
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      timeout: 30000
-    });
-
-    const page = await browser.newPage();
+    // 1. Get the existing browser (Instant)
+    const browser = await getBrowser();
     
-    // Set a consistent viewport size so coordinates match the screenshot
+    // 2. Open a new TAB only (Fast)
+    page = await browser.newPage();
+    
+    // Set viewport to standard desktop size
     await page.setViewport({ width: 1280, height: 800 });
 
-    page.setDefaultNavigationTimeout(30000);
-    page.setDefaultTimeout(30000);
+    // ❌ REMOVED: Asset Blocking Logic 
+    // We are now loading ALL fonts, images, and media for maximum accuracy.
 
-    await page.goto(url, { waitUntil: "networkidle2" });
+    // 3. Navigate
+    // We use 'domcontentloaded' to keep it snappy, but since assets are allowed, 
+    // the visual rendering will be correct.
+    await page.goto(url, { 
+      waitUntil: "domcontentloaded", 
+      timeout: 45000 
+    });
 
-    // 1. Capture Screenshot as Base64 (to avoid saving files for now)
-    const screenshot = await page.screenshot({ encoding: "base64", fullPage: false });
+    // Optional: Wait a tiny bit extra for fonts/images to render (1s)
+    // This helps contrast checks be more accurate without waiting forever.
+    await new Promise(r => setTimeout(r, 1000));
 
-    // 2. Inject axe-core
+    // 4. Capture Screenshot (Standard quality for better visuals)
+    const screenshot = await page.screenshot({ 
+      encoding: "base64", 
+      type: "jpeg",
+      quality: 60, // Slightly higher quality for better visibility
+      fullPage: false 
+    });
+
+    // 5. Run Axe
     await page.evaluate(axeCore.source);
-
-    // 3. Run axe and extract coordinates
+    
     const results = await page.evaluate(async () => {
-      const axeResults = await window.axe.run();
+      const axeResults = await window.axe.run({
+        runOnly: {
+            type: 'tag',
+            values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
+        }
+      });
       
-      // Attach bounding box data to each node
+      // Extract coordinates for Visual Inspector
       for (const violation of axeResults.violations) {
         for (const node of violation.nodes) {
           const element = document.querySelector(node.target[0]);
@@ -42,7 +88,7 @@ export async function runAxeScan(url) {
               left: rect.left,
               width: rect.width,
               height: rect.height,
-              windowWidth: window.innerWidth // Helps frontend handle scaling
+              windowWidth: window.innerWidth 
             };
           }
         }
@@ -50,23 +96,28 @@ export async function runAxeScan(url) {
       return axeResults;
     });
 
-    // Return both the axe results and the visual context
     return {
       ...results,
-      screenshot: `data:image/png;base64,${screenshot}`,
+      screenshot: `data:image/jpeg;base64,${screenshot}`,
     };
 
   } catch (error) {
-    if (error.message.includes("Navigation timeout")) {
-      throw new Error("Page took too long to load");
+    console.error("❌ Axe Scan Error:", error.message);
+    
+    // Reset browser if it crashed
+    if (sharedBrowser && !sharedBrowser.isConnected()) {
+      sharedBrowser = null;
     }
-    if (error.message.includes("net::")) {
-      throw new Error("Failed to load the website (check the URL)");
+
+    if (error.message.includes("timeout") || error.message.includes("Navigation")) {
+      throw new Error("Page took too long. Try a lighter page.");
     }
     throw error;
+
   } finally {
-    if (browser) {
-      await browser.close();
+    // ⚠️ CRITICAL: Close the TAB to free memory
+    if (page) {
+      await page.close();
     }
   }
 }

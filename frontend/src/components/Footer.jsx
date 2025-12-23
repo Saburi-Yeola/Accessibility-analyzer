@@ -1,3 +1,5 @@
+import { Github, FileText, Lock } from "lucide-react";
+
 export default function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-300 mt-24">
@@ -16,9 +18,35 @@ export default function Footer() {
         <div>
           <h4 className="text-sm font-semibold text-white mb-3">Links</h4>
           <ul className="space-y-2 text-sm">
-            <li>Documentation</li>
-            <li>GitHub</li>
-            <li>Privacy Policy</li>
+            <li>
+              <a 
+                href="https://github.com/karina-purswani/accessibility-analyzer#readme" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 hover:text-white transition-colors"
+              >
+                <FileText className="w-4 h-4" /> Documentation
+              </a>
+            </li>
+            <li>
+              <a 
+                href="https://github.com/karina-purswani/accessibility-analyzer" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 hover:text-white transition-colors"
+              >
+                <Github className="w-4 h-4" /> GitHub Repository
+              </a>
+            </li>
+            <li>
+              <a 
+                href="#" 
+                className="flex items-center gap-2 hover:text-white transition-colors cursor-not-allowed opacity-70"
+                title="Coming Soon"
+              >
+                <Lock className="w-4 h-4" /> Privacy Policy
+              </a>
+            </li>
           </ul>
         </div>
 
@@ -34,7 +62,7 @@ export default function Footer() {
       </div>
 
       <div className="border-t border-gray-800 text-center py-4 text-xs text-gray-500">
-        © {new Date().getFullYear()} Accessibility Analyzer
+        © {new Date().getFullYear()} Karina Purswani & Saburi Yeola. All rights reserved.
       </div>
     </footer>
   );

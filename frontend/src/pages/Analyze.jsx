@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Globe, AlertTriangle, CheckCircle, HelpCircle 
+  Globe, AlertTriangle, CheckCircle, HelpCircle, Info 
 } from "lucide-react";
 
 import Header from "../components/Header";
@@ -69,14 +69,14 @@ export default function Analyze() {
   if (!user) return <div className="min-h-screen flex items-center justify-center dark:bg-gray-950 dark:text-white">Please log in.</div>;
 
   const handleScan = async () => {
-    if (!url) return;
+    if (!url || loading) return; // Prevent double submit
     setLoading(true);
     setError(null);
     setResults(null);
     setActiveViolation(null);
 
     try {
-      const response = await fetch("http://localhost:5000/scan", {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/scan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, userId: user.uid, userEmail: user.email }),
@@ -100,6 +100,13 @@ export default function Analyze() {
     }
   };
 
+  // ✅ Handler for Enter key
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleScan();
+    }
+  };
+
   const score = results ? calculateHealthScore(results.violations, results.passes) : 0;
   const radius = 26; 
   const circumference = 2 * Math.PI * radius; 
@@ -109,24 +116,15 @@ export default function Analyze() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 px-6 py-10 pt-24 print:bg-white print:p-0 print:pt-0">
       
-      {/* PRINT MEDIA QUERIES
-          1. Removes browser artifacts like "History" and "frontend".
-          2. Ensures exact visual rendering of screenshots and highlights.
-      */}
+      {/* PRINT MEDIA QUERIES */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page { margin: 1cm; }
           body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           .no-print { display: none !important; }
-          
-          /* Hide non-report UI */
           header, nav, .history-container, .user-nav, [data-testid="header"] { display: none !important; }
-
-          /* Layout management for PDF */
           .print-stack { display: block !important; width: 100% !important; margin-bottom: 2rem !important; }
           .print-break-page { break-before: page !important; }
-          
-          /* Force Inspector to fill width in report */
           .inspector-report-view { height: auto !important; max-height: none !important; overflow: visible !important; width: 100% !important; }
         }
       `}} />
@@ -149,7 +147,25 @@ export default function Analyze() {
           </div>
         </div>
 
-        <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-soft p-8 print:hidden no-print border dark:border-gray-800">
+        {/* ✅ NEW: INFO NOTICE (Single Page Scope) */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-start gap-3 print:hidden animate-in fade-in slide-in-from-top-2">
+            <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div>
+               <p className="text-sm text-blue-900 dark:text-blue-200 font-semibold">
+                 Single-Page Analysis Mode
+               </p>
+               <p className="text-sm text-blue-700 dark:text-blue-300 mt-1 leading-relaxed">
+                 Currently, the scanner analyzes the specific URL provided (e.g., Homepage). 
+                 <span className="opacity-75"> Full-site crawling and internal page navigation are planned for Future Scope (v2.0).</span>
+               </p>
+            </div>
+        </div>
+
+        {/* Keyboard listener wrapper */}
+        <section 
+          onKeyDown={handleKeyDown} 
+          className="bg-white dark:bg-gray-900 rounded-2xl shadow-soft p-8 print:hidden no-print border dark:border-gray-800"
+        >
           <ScanForm url={url} setUrl={setUrl} loading={loading} onScan={handleScan} error={error} />
         </section>
 
